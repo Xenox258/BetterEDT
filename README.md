@@ -1,12 +1,12 @@
 # 📅 EDT IUT Blagnac - Emploi du Temps
 
 Application web pour consulter les emplois du temps de l'IUT de Blagnac.
+Accès à la version publique : [edt.xenox.fr](https://edt.xenox.fr/)
 
 ## 🎯 Présentation
 
 Application complète avec backend API et frontend React pour afficher les emplois du temps des départements CS, GIM, INFO et RT.
-
-**Accès rapide** : [edt.xenox.fr](https://edt.xenox.fr/)
+ 
 
 **Fonctionnalités** :
 - ✅ Consultation des emplois du temps par département, année et groupe
