@@ -1,5 +1,0 @@
-# Configuration anacron pour EDT-IUT
-# Ajouter cette ligne à /etc/anacrontab pour activer la synchronisation après redémarrage
-
-# Périodicité (jours)  Délai (minutes)  Job-ID                      Commande
-1                      10               edt-iut-sync                /srv/dev-disk-by-uuid-0818de14-ddf8-46a5-bf71-2ecaff879f70/apps/edt-iut/backend/scripts/anacron-sync.sh
