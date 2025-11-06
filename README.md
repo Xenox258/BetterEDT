@@ -139,8 +139,8 @@ sudo journalctl -u edt-api -f
 
 ### Reverse Proxy (Nginx)
 
-Le backend tourne sur le port 443 en version finale et est accessible via reverse proxy :
-- **Public** : http://152.228.219.56:443
+Le backend tourne sur le port 8000 et est accessible via reverse proxy :
+- **Public** : http://152.228.219.56:8000
 - **Local** : http://10.0.0.2:8000
 
 ## 🎨 Frontend
