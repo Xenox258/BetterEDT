@@ -1,0 +1,51 @@
+{
+  "name": "EDT IUT",
+  "short_name": "EDT IUT",
+  "description": "Consultez l'emploi du temps de l'IUT et les salles libres, même hors connexion.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/AppIcons/Assets.xcassets/AppIcon.appiconset/128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/AppIcons/Assets.xcassets/AppIcon.appiconset/196.png",
+      "sizes": "196x196",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/AppIcons/Assets.xcassets/AppIcon.appiconset/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/AppIcons/Assets.xcassets/AppIcon.appiconset/1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Voir la semaine",
+      "short_name": "Semaine",
+      "url": "/",
+      "description": "Accéder rapidement à l'emploi du temps de la semaine en cours"
+    },
+    {
+      "name": "Salles libres",
+      "short_name": "Salles",
+      "url": "/?view=free-rooms",
+      "description": "Consulter les salles disponibles"
+    }
+  ]
+}

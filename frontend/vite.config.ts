@@ -1,0 +1,67 @@
+import path from "path";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: [
+        "icon2.png"
+      ],
+      devOptions: {
+        enabled: true,
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
+      },
+      manifest: {
+        name: "EDT IUT",
+        short_name: "EDT IUT",
+        description: "Consultez et suivez l'emploi du temps interactif de l'IUT, même hors ligne.",
+        theme_color: "#0f172a",
+        background_color: "#0f172a",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        orientation: "portrait",
+        icons: [
+          {
+            src: "/icon2.png",
+            sizes: "500x500",
+            type: "image/png",
+            purpose: "any maskable",
+          }
+        ],
+        shortcuts: [
+          {
+            name: "Voir la semaine",
+            short_name: "Semaine",
+            url: "/",
+            description: "Accéder rapidement à l'emploi du temps de la semaine en cours"
+          },
+          {
+            name: "Salles libres",
+            short_name: "Salles",
+            url: "/?view=free-rooms",
+            description: "Consulter les salles disponibles"
+          }
+        ]
+      }
+    })
+  ],
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") },
+  },
+  server: {
+    host: '0.0.0.0', // Écoute sur toutes les interfaces réseau
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      host: "192.168.1.15", // L'adresse IP de votre Raspberry Pi
+      protocol: 'ws',
+    },
+  },
+});

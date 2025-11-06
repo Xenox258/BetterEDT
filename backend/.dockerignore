@@ -1,0 +1,19 @@
+# Fichiers de build
+*.log
+npm-debug.log*
+
+# Dépendances
+node_modules
+
+# Base de données (si vous en avez une)
+*.sqlite
+*.db
+
+# Editor
+.vscode
+.idea
+.DS_Store
+
+# Environment
+.env
+.env.local

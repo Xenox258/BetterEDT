@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 240 20% 99%;
+    --foreground: 240 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 262 90% 70%;
+
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 262 83% 58%;
+
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(282 90% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(240 20% 99%), hsl(240 20% 96%));
+    --gradient-accent: linear-gradient(135deg, hsl(195 100% 50%), hsl(262 83% 58%));
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 8px hsl(240 10% 10% / 0.04);
+    --shadow-md: 0 4px 16px hsl(240 10% 10% / 0.08);
+    --shadow-lg: 0 8px 32px hsl(240 10% 10% / 0.12);
+    --shadow-glow: 0 0 32px hsl(262 83% 58% / 0.3);
+    
+    /* Animations */
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 240 10% 5%;
+    --foreground: 240 5% 96%;
+
+    --card: 240 10% 8%;
+    --card-foreground: 240 5% 96%;
+
+    --popover: 240 10% 8%;
+    --popover-foreground: 240 5% 96%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 262 90% 70%;
+
+    --secondary: 240 8% 15%;
+    --secondary-foreground: 240 5% 96%;
+
+    --muted: 240 8% 15%;
+    --muted-foreground: 240 5% 64%;
+
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 8% 18%;
+    --input: 240 8% 18%;
+    --ring: 262 83% 58%;
+    
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(282 90% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(240 10% 5%), hsl(240 10% 8%));
+    --gradient-accent: linear-gradient(135deg, hsl(195 100% 50%), hsl(262 83% 58%));
+    
+    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.5);
+    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.7);
+    --shadow-glow: 0 0 32px hsl(262 83% 58% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    font-optical-sizing: auto;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-xl border border-white/10;
+  }
+  
+  .shadow-elegant {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .transition-base {
+    transition: var(--transition-base);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+  
+  /* Animation subtile pour les DS */
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 4px 24px rgba(245, 158, 11, 0.4), 0 0 0 3px rgba(251, 191, 36, 0.2);
+    }
+    50% {
+      opacity: 0.95;
+      box-shadow: 0 4px 24px rgba(245, 158, 11, 0.6), 0 0 0 4px rgba(251, 191, 36, 0.3);
+    }
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2.5s ease-in-out infinite;
+  }
+}

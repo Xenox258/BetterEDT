@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: edt-iut-backend
+    restart: unless-stopped
+    ports:
+      - "10.0.0.2:3005:8000"
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+    networks:
+      - edt-network
+
+  # Frontend web app
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=https://api.edt.xenox.fr
+    container_name: edt-iut-frontend
+    restart: unless-stopped
+    ports:
+      - "10.0.0.2:3004:80"
+    depends_on:
+      - backend
+    networks:
+      - edt-network
+
+networks:
+  edt-network:
+    driver: bridge
