@@ -489,17 +489,13 @@ export default function Timetable() {
                           <label className="text-xs font-medium text-muted-foreground mb-2 block">Groupe</label>
                           <select
                             value={groupFilter}
-                            onChange={(e) => {
-                              setGroupFilter(e.target.value);
-                            }}
+                            onChange={(e) => setGroupFilter(e.target.value)}
                             className="w-full px-3 py-2 text-sm rounded-lg bg-secondary border-0 text-foreground font-medium transition-colors hover:bg-secondary/80 focus:ring-2 focus:ring-primary outline-none"
                           >
-                            <option value="ALL">📚 Tous</option>
+                            <option value="ALL">Tous les groupes</option>
                             {Object.entries(availableGroupsByCategory).map(([category, groups]) => (
-                              <optgroup key={category} label={category}>
-                                {groups.map((g: string) => (
-                                  <option key={g} value={g}>{g}</option>
-                                ))}
+                              <optgroup label={category} key={category}>
+                                {groups.map(g => <option key={g} value={g}>{g}</option>)}
                               </optgroup>
                             ))}
                           </select>
@@ -524,34 +520,6 @@ export default function Timetable() {
                                 {num}j
                               </button>
                             ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground mb-2 block">Année civile</label>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setYearNumber(Math.max(2020, yearNumber - 1))}
-                              className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                              aria-label="Année précédente"
-                            >
-                              <ChevronLeft className="w-4 h-4" />
-                            </button>
-                            <input
-                              type="number"
-                              min={2020}
-                              max={2030}
-                              value={yearNumber}
-                              onChange={(e) => setYearNumber(Number(e.target.value))}
-                              className="px-3 py-2 text-sm w-20 rounded-lg bg-secondary border-0 text-foreground font-medium transition-colors hover:bg-secondary/80 focus:ring-2 focus:ring-primary outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                            <button
-                              onClick={() => setYearNumber(Math.min(2030, yearNumber + 1))}
-                              className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                              aria-label="Année suivante"
-                            >
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -753,96 +721,41 @@ export default function Timetable() {
 
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <button className={`flex items-center gap-2 ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2.5'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}>
-                  <CalendarIcon className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-muted-foreground`} />
-                  <span className="font-medium">S{week}</span>
-                </button>
-              </PopoverTrigger>
+                  <button
+                    className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
+                    aria-label="Choisir une date"
+                  >
+                    <CalendarIcon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                  </button>
+                </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <CalendarPicker
                   mode="single"
                   selected={selectedDate}
                   onSelect={(date) => {
                     if (date) {
+                      const { week: newWeek } = getISOWeekInfo(date);
+                      setWeek(newWeek);
                       setSelectedDate(date);
-                      const isoInfo = getISOWeekInfo(date);
-                      setWeek(isoInfo.week);
-                      setYearNumber(isoInfo.year);
-                      
-                      // Ajuster le jour affiché selon le jour sélectionné
-                      const selectedDayOfWeek = date.getDay(); // 0=Dimanche, 1=Lundi, ..., 6=Samedi
-                      let dayIndex = selectedDayOfWeek === 0 ? 0 : selectedDayOfWeek - 1; // Convertir en 0=Lundi, 1=Mardi, ..., 4=Vendredi
-                      
-                      // Si samedi ou dimanche, revenir au lundi
-                      if (dayIndex >= 5) dayIndex = 0;
-                      
-                      // Ajuster startDayIndex selon le mode d'affichage
-                      if (daysToShow === 1) {
-                        // Mode 1 jour : afficher exactement le jour sélectionné
-                        setStartDayIndex(dayIndex);
-                      } else if (daysToShow === 3) {
-                        // Mode 3 jours : ajuster pour que le jour soit visible
-                        // Si on sélectionne Lundi/Mardi → afficher Lun-Mar-Mer (startDayIndex=0)
-                        // Si on sélectionne Mercredi → afficher Mar-Mer-Jeu (startDayIndex=1)
-                        // Si on sélectionne Jeudi/Vendredi → afficher Mer-Jeu-Ven (startDayIndex=2)
-                        if (dayIndex <= 1) {
-                          setStartDayIndex(0); // Lundi ou Mardi
-                        } else if (dayIndex === 2) {
-                          setStartDayIndex(1); // Mercredi
-                        } else {
-                          setStartDayIndex(2); // Jeudi ou Vendredi
-                        }
-                      } else {   
-                        // Mode 5 jours : toujours afficher toute la semaine
-                        setStartDayIndex(0);
-                      }
-                      
-                      setCalendarOpen(false); // Fermer le calendrier après sélection
+                      setCalendarOpen(false);
                     }
                   }}
                   initialFocus
+                  weekStartsOn={1}
+                  fromYear={yearNumber}
+                  toYear={yearNumber}
                 />
               </PopoverContent>
             </Popover>
 
             <button
-              onClick={() => setWeek(Math.min(53, week + 1))}
+              onClick={() => setWeek(week + 1 > 52 ? 1 : week + 1)}
               className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
               aria-label="Semaine suivante"
             >
               <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
             </button>
           </div>
-
-          {/* Navigation année avec boutons - masqué sur mobile (déplacé dans le menu) */}
-          {!isMobile && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setYearNumber(Math.max(2020, yearNumber - 1))}
-              className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
-              aria-label="Année précédente"
-            >
-              <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-            </button>
-
-            <input
-              type="number"
-              min={2020}
-              max={2030}
-              value={yearNumber}
-              onChange={(e) => setYearNumber(Number(e.target.value))}
-              className={`${isMobile ? 'px-3 py-2 text-sm w-16' : 'px-4 py-2.5 w-24'} rounded-xl bg-card border border-border text-foreground font-medium transition-base hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none shadow-elegant text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-            />
-
-            <button
-              onClick={() => setYearNumber(Math.min(2030, yearNumber + 1))}
-              className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
-              aria-label="Année suivante"
-            >
-              <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-            </button>
-          </div>
-          )}
         </div>
       </header>
 
