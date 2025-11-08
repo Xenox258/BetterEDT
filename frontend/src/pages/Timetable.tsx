@@ -137,6 +137,9 @@ export default function Timetable() {
   const initialWeekInfo = React.useMemo(() => getInitialWeekInfo(), []);
   const [courses, setCourses] = useState<CoursAPI[]>([]); // kept only for types; will be set from hook
   const [daysToShow, setDaysToShow] = useState<number>(() => {
+    if (isMobile) {
+      return 1; // Toujours afficher 1 jour par défaut sur mobile
+    }
     if (typeof window !== 'undefined') {
       try {
         const raw = window.localStorage.getItem('edt-last-days');
@@ -150,9 +153,17 @@ export default function Timetable() {
         console.warn('Impossible de lire la préférence d\'affichage:', error);
       }
     }
-    return isMobile ? dayOptions[0] : 5;
+    return 5; // Par défaut pour le bureau
   });
-  const [startDayIndex, setStartDayIndex] = useState(0); // 0 = Lundi, 1 = Mardi, etc.
+  const [startDayIndex, setStartDayIndex] = useState(() => {
+    if (isMobile) {
+      const today = new Date().getDay(); // 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
+      if (today >= 1 && today <= 5) {
+        return today - 1; // 0 = Lundi, ..., 4 = Vendredi
+      }
+    }
+    return 0; // Par défaut Lundi
+  });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => initialWeekInfo.referenceDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -332,7 +343,7 @@ export default function Timetable() {
   const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const dayStartHour = 8;
   const dayEndHour = 19;
-  const hourHeight = 80; // Augmenté de 60 à 80 pour plus d'espace vertical
+  const hourHeight = 56; // Hauteur d'une heure en pixels, ajustée pour la vue mobile
   const pxPerMinute = hourHeight / 60;
   const headerHeight = 56;
   const contentHeight = (dayEndHour - dayStartHour) * 60 * pxPerMinute;
@@ -802,7 +813,7 @@ export default function Timetable() {
           )}
 
           <div
-            className={`${isMobile ? 'relative max-h-[calc(100vh-220px)] overflow-y-auto touch-pan-y scroll-smooth' : ''}`}
+            className={`${isMobile ? 'relative overflow-y-auto touch-pan-y scroll-smooth' : ''}`}
             style={{
               display: 'grid',
               gridTemplateColumns,
@@ -951,7 +962,7 @@ export default function Timetable() {
                           setSelectedCourse(c);
                           setCourseDialogOpen(true);
                         }}
-                        className={`absolute rounded-lg cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] group overflow-hidden flex flex-col border-l-4 ${
+                        className={`absolute rounded-lg cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] group overflow-hidden flex border-l-4 ${
                           isExam ? 'ring-[3px] ring-amber-500' : ''
                         }`}
                         style={{
@@ -962,51 +973,54 @@ export default function Timetable() {
                           backgroundColor: hexToRgba(c.display_color_bg, 0.20),
                           borderLeftColor: c.display_color_bg,
                           color: 'var(--foreground)',
-                          padding: '8px 10px',
-                          zIndex: 10, // Au-dessus de l'icône lunch (zIndex: 0)
+                          zIndex: 10,
                         }}
                         title={`${isExam ? '📝 DEVOIR SURVEILLÉ - ' : ''}${courseType ? `[${courseType}] ` : ''}${c.module_name} (${displayName})\nGroupes: ${c.groups.join(', ')}\nProfesseur: ${c.tutor_username}\nSalle: ${c.room_name}\nHoraire: ${formatTime(start)} - ${formatTime(end)}`}
                       >
-                        <div className="flex items-start gap-1 mb-1 flex-wrap">
-                          {isExam && (
-                            <span className="inline-block text-[9px] px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md font-bold shadow-sm">
+                        {/* Section de l'étiquette */}
+                        <div className="flex items-center justify-center w-14 flex-shrink-0 self-stretch bg-black/30">
+                          {isExam ? (
+                            <span className="text-[10px] font-bold text-white">
                               📝 DS
                             </span>
-                          )}
-                          {courseType && (
-                            <span className="inline-block text-[11px] px-2 py-0.5 bg-primary/50 text-primary-foreground font-bold rounded-md border border-primary/60">
+                          ) : courseType && (
+                            <span className="text-[11px] font-bold text-white">
                               {courseType}
                             </span>
                           )}
                         </div>
-                        <div className="font-semibold text-[13px] leading-tight truncate mb-1">
-                          {displayName}
-                        </div>
-                        {height >= 50 && (
-                          <>
-                            <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
-                              {formatTime(start)} - {formatTime(end)}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
-                              👤 {c.tutor_username}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground leading-tight truncate">
-                              📍 {c.room_name}
-                            </div>
-                          </>
-                        )}
-                        {groupFilter === "ALL" && c.groups.length > 0 && height >= 85 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {sortGroups([...c.groups]).map(g => (
-                              <span 
-                                key={g} 
-                                className="text-[9px] px-1.5 py-0.5 bg-muted/60 rounded-md text-muted-foreground font-medium"
-                              >
-                                {g}
-                              </span>
-                            ))}
+                        
+                        {/* Section des détails */}
+                        <div className="flex-1 min-w-0 p-2">
+                          <div className="font-semibold text-[13px] leading-tight truncate mb-1">
+                            {displayName}
                           </div>
-                        )}
+                          {height >= 50 && (
+                            <>
+                              <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
+                                {formatTime(start)} - {formatTime(end)}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
+                                👤 {c.tutor_username}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground leading-tight truncate">
+                                📍 {c.room_name}
+                              </div>
+                            </>
+                          )}
+                          {groupFilter === "ALL" && c.groups.length > 0 && height >= 85 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {sortGroups([...c.groups]).map(g => (
+                                <span 
+                                  key={g} 
+                                  className="text-[9px] px-1.5 py-0.5 bg-muted/60 rounded-md text-muted-foreground font-medium"
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   });
