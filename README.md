@@ -228,11 +228,11 @@ curl http://localhost:8000/api/schedule/INFO/2025/41
 
 ## 📈 Historique
 
-### Version actuelle (Octobre 2025)
+### Version actuelle (Novembre 2025)
 
 **Architecture JSON** : Simplification majeure, suppression de la base de données.
 
-### Ancienne version (Mars 2024 - Octobre 2025)
+### Ancienne version (Septembre 2025 - Octobre 2025)
 
 **Architecture DB** : Utilisation de MariaDB pour stocker les cours.  
 Documentation archivée dans [`backend/docs-archive/`](backend/docs-archive/).
