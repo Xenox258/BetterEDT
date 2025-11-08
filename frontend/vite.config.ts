@@ -34,8 +34,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: "EDT IUT",
-        short_name: "EDT IUT",
+        name: "BetterEDT",
+        short_name: "BetterEDT",
         description: "Consultez et suivez l'emploi du temps interactif de l'IUT, même hors ligne.",
         theme_color: "#0f172a",
         background_color: "#0f172a",
