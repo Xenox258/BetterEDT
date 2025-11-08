@@ -61,7 +61,7 @@ export function Welcome() {
       </div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Bienvenue dans l'Emploi du Temps</CardTitle>
+          <CardTitle className="text-2xl">Bienvenue dans BetterEDT</CardTitle>
           <CardDescription>Veuillez sélectionner votre département et votre année pour commencer.</CardDescription>
         </CardHeader>
         <CardContent>

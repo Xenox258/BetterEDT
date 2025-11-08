@@ -18,6 +18,7 @@ sync.log
 .env.development.local
 .env.test.local
 .env.production.local
+.last-sync-timestamp
 
 # OS-generated files
 .DS_Store

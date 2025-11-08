@@ -15,7 +15,23 @@ export default defineConfig({
         enabled: false,
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https?:\/\/.*\/api\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 24 heures
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
       manifest: {
         name: "EDT IUT",

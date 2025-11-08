@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProfiles } from "@/hooks/use-profiles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProfileManager } from "@/components/ProfileManager";
@@ -137,6 +138,11 @@ export default function Timetable() {
   const initialWeekInfo = React.useMemo(() => getInitialWeekInfo(), []);
   const [courses, setCourses] = useState<CoursAPI[]>([]); // kept only for types; will be set from hook
   const [daysToShow, setDaysToShow] = useState<number>(() => {
+    // Sur mobile, toujours 1 jour
+    if (isMobile) {
+      return 1;
+    }
+    // Sur desktop, vérifier les préférences sauvegardées
     if (typeof window !== 'undefined') {
       try {
         const raw = window.localStorage.getItem('edt-last-days');
@@ -150,9 +156,18 @@ export default function Timetable() {
         console.warn('Impossible de lire la préférence d\'affichage:', error);
       }
     }
-    return isMobile ? dayOptions[0] : 5;
+    // Par défaut : 5 jours sur desktop
+    return 5;
   });
-  const [startDayIndex, setStartDayIndex] = useState(0); // 0 = Lundi, 1 = Mardi, etc.
+  const [startDayIndex, setStartDayIndex] = useState(() => {
+    if (isMobile) {
+      const today = new Date().getDay(); // 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
+      if (today >= 1 && today <= 5) {
+        return today - 1; // 0 = Lundi, ..., 4 = Vendredi
+      }
+    }
+    return 0; // Par défaut Lundi
+  });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => initialWeekInfo.referenceDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -332,7 +347,7 @@ export default function Timetable() {
   const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const dayStartHour = 8;
   const dayEndHour = 19;
-  const hourHeight = 80; // Augmenté de 60 à 80 pour plus d'espace vertical
+  const hourHeight = isMobile ? 56 : 80; // 56px sur mobile pour voir plus de cours, 80px sur desktop pour plus d'espace
   const pxPerMinute = hourHeight / 60;
   const headerHeight = 56;
   const contentHeight = (dayEndHour - dayStartHour) * 60 * pxPerMinute;
@@ -389,9 +404,10 @@ export default function Timetable() {
   }, [getDateForColumn, isCurrentWeek, now]);
 
   return (
-    <div
-      className={`min-h-screen bg-background ${isMobile ? 'p-2' : 'p-4 md:p-6 lg:p-8'} animate-fade-in ${isMobile ? '' : 'max-w-[75vw] mx-auto'}`}
-    >
+    <TooltipProvider delayDuration={200}>
+      <div
+        className={`min-h-screen bg-background ${isMobile ? 'p-2' : 'p-4 md:p-6 lg:p-8'} animate-fade-in ${isMobile ? '' : 'max-w-[75vw] mx-auto'}`}
+      >
       {/* Header */}
       <header className={`${isMobile ? 'mb-4' : 'mb-8'} animate-slide-up`}>
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -410,7 +426,7 @@ export default function Timetable() {
                 {/* Header avec titre et saison */}
                 <div className="p-6 border-b border-border">
                   <h2 className="text-xl font-bold mb-1 bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
-                    Emploi du temps
+                    BetterEDT
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     Semaine {week} • {yearNumber}
@@ -600,7 +616,7 @@ export default function Timetable() {
 
             <div>
               <h1 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent mb-2`}>
-                Emploi du temps
+                BetterEDT
               </h1>
               <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>Semaine {week} • {yearNumber}</p>
             </div>
@@ -722,10 +738,11 @@ export default function Timetable() {
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                   <button
-                    className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
+                    className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3 h-9' : 'px-4 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
                     aria-label="Choisir une date"
                   >
                     <CalendarIcon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={`font-medium text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>S{week}</span>
                   </button>
                 </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -802,7 +819,7 @@ export default function Timetable() {
           )}
 
           <div
-            className={`${isMobile ? 'relative max-h-[calc(100vh-220px)] overflow-y-auto touch-pan-y scroll-smooth' : ''}`}
+            className={`${isMobile ? 'relative overflow-y-auto touch-pan-y scroll-smooth' : ''}`}
             style={{
               display: 'grid',
               gridTemplateColumns,
@@ -951,7 +968,7 @@ export default function Timetable() {
                           setSelectedCourse(c);
                           setCourseDialogOpen(true);
                         }}
-                        className={`absolute rounded-lg cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] group overflow-hidden flex flex-col border-l-4 ${
+                        className={`absolute rounded-lg cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] group overflow-hidden flex border-l-4 ${
                           isExam ? 'ring-[3px] ring-amber-500' : ''
                         }`}
                         style={{
@@ -962,51 +979,54 @@ export default function Timetable() {
                           backgroundColor: hexToRgba(c.display_color_bg, 0.20),
                           borderLeftColor: c.display_color_bg,
                           color: 'var(--foreground)',
-                          padding: '8px 10px',
-                          zIndex: 10, // Au-dessus de l'icône lunch (zIndex: 0)
+                          zIndex: 10,
                         }}
                         title={`${isExam ? '📝 DEVOIR SURVEILLÉ - ' : ''}${courseType ? `[${courseType}] ` : ''}${c.module_name} (${displayName})\nGroupes: ${c.groups.join(', ')}\nProfesseur: ${c.tutor_username}\nSalle: ${c.room_name}\nHoraire: ${formatTime(start)} - ${formatTime(end)}`}
                       >
-                        <div className="flex items-start gap-1 mb-1 flex-wrap">
-                          {isExam && (
-                            <span className="inline-block text-[9px] px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md font-bold shadow-sm">
+                        {/* Section de l'étiquette */}
+                        <div className="flex items-center justify-center w-14 flex-shrink-0 self-stretch bg-black/30">
+                          {isExam ? (
+                            <span className="text-[10px] font-bold text-white">
                               📝 DS
                             </span>
-                          )}
-                          {courseType && (
-                            <span className="inline-block text-[11px] px-2 py-0.5 bg-primary/50 text-primary-foreground font-bold rounded-md border border-primary/60">
+                          ) : courseType && (
+                            <span className="text-[11px] font-bold text-white">
                               {courseType}
                             </span>
                           )}
                         </div>
-                        <div className="font-semibold text-[13px] leading-tight truncate mb-1">
-                          {displayName}
-                        </div>
-                        {height >= 50 && (
-                          <>
-                            <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
-                              {formatTime(start)} - {formatTime(end)}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
-                              👤 {c.tutor_username}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground leading-tight truncate">
-                              📍 {c.room_name}
-                            </div>
-                          </>
-                        )}
-                        {groupFilter === "ALL" && c.groups.length > 0 && height >= 85 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {sortGroups([...c.groups]).map(g => (
-                              <span 
-                                key={g} 
-                                className="text-[9px] px-1.5 py-0.5 bg-muted/60 rounded-md text-muted-foreground font-medium"
-                              >
-                                {g}
-                              </span>
-                            ))}
+                        
+                        {/* Section des détails */}
+                        <div className="flex-1 min-w-0 p-2">
+                          <div className="font-semibold text-[13px] leading-tight truncate mb-1">
+                            {displayName}
                           </div>
-                        )}
+                          {height >= 50 && (
+                            <>
+                              <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
+                                {formatTime(start)} - {formatTime(end)}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground leading-tight mb-0.5 truncate">
+                                👤 {c.tutor_username}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground leading-tight truncate">
+                                📍 {c.room_name}
+                              </div>
+                            </>
+                          )}
+                          {groupFilter === "ALL" && c.groups.length > 0 && height >= 85 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {sortGroups([...c.groups]).map(g => (
+                                <span 
+                                  key={g} 
+                                  className="text-[9px] px-1.5 py-0.5 bg-muted/60 rounded-md text-muted-foreground font-medium"
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   });
@@ -1246,6 +1266,7 @@ export default function Timetable() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
