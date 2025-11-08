@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProfiles } from "@/hooks/use-profiles";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProfileManager } from "@/components/ProfileManager";
@@ -137,9 +138,11 @@ export default function Timetable() {
   const initialWeekInfo = React.useMemo(() => getInitialWeekInfo(), []);
   const [courses, setCourses] = useState<CoursAPI[]>([]); // kept only for types; will be set from hook
   const [daysToShow, setDaysToShow] = useState<number>(() => {
+    // Sur mobile, toujours 1 jour
     if (isMobile) {
-      return 1; // Toujours afficher 1 jour par défaut sur mobile
+      return 1;
     }
+    // Sur desktop, vérifier les préférences sauvegardées
     if (typeof window !== 'undefined') {
       try {
         const raw = window.localStorage.getItem('edt-last-days');
@@ -153,7 +156,8 @@ export default function Timetable() {
         console.warn('Impossible de lire la préférence d\'affichage:', error);
       }
     }
-    return 5; // Par défaut pour le bureau
+    // Par défaut : 5 jours sur desktop
+    return 5;
   });
   const [startDayIndex, setStartDayIndex] = useState(() => {
     if (isMobile) {
@@ -343,7 +347,7 @@ export default function Timetable() {
   const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const dayStartHour = 8;
   const dayEndHour = 19;
-  const hourHeight = 56; // Hauteur d'une heure en pixels, ajustée pour la vue mobile
+  const hourHeight = isMobile ? 56 : 80; // 56px sur mobile pour voir plus de cours, 80px sur desktop pour plus d'espace
   const pxPerMinute = hourHeight / 60;
   const headerHeight = 56;
   const contentHeight = (dayEndHour - dayStartHour) * 60 * pxPerMinute;
@@ -400,9 +404,10 @@ export default function Timetable() {
   }, [getDateForColumn, isCurrentWeek, now]);
 
   return (
-    <div
-      className={`min-h-screen bg-background ${isMobile ? 'p-2' : 'p-4 md:p-6 lg:p-8'} animate-fade-in ${isMobile ? '' : 'max-w-[75vw] mx-auto'}`}
-    >
+    <TooltipProvider delayDuration={200}>
+      <div
+        className={`min-h-screen bg-background ${isMobile ? 'p-2' : 'p-4 md:p-6 lg:p-8'} animate-fade-in ${isMobile ? '' : 'max-w-[75vw] mx-auto'}`}
+      >
       {/* Header */}
       <header className={`${isMobile ? 'mb-4' : 'mb-8'} animate-slide-up`}>
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -421,7 +426,7 @@ export default function Timetable() {
                 {/* Header avec titre et saison */}
                 <div className="p-6 border-b border-border">
                   <h2 className="text-xl font-bold mb-1 bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
-                    Emploi du temps
+                    BetterEDT
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     Semaine {week} • {yearNumber}
@@ -611,7 +616,7 @@ export default function Timetable() {
 
             <div>
               <h1 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent mb-2`}>
-                Emploi du temps
+                BetterEDT
               </h1>
               <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>Semaine {week} • {yearNumber}</p>
             </div>
@@ -733,10 +738,11 @@ export default function Timetable() {
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                   <button
-                    className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
+                    className={`flex items-center justify-center gap-2 ${isMobile ? 'px-3 h-9' : 'px-4 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
                     aria-label="Choisir une date"
                   >
                     <CalendarIcon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                    <span className={`font-medium text-muted-foreground ${isMobile ? 'text-sm' : 'text-base'}`}>S{week}</span>
                   </button>
                 </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -1260,6 +1266,7 @@ export default function Timetable() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
