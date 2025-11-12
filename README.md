@@ -1,4 +1,4 @@
-# 📅 EDT IUT Blagnac - Emploi du Temps
+# 📅 BetterEDT IUT Blagnac - Emploi du Temps
 
 Application web pour consulter les emplois du temps de l'IUT de Blagnac.
 
