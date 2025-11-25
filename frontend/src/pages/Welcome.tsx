@@ -44,6 +44,12 @@ export function Welcome() {
         theme: dark ? 'dark' : 'light',
       };
       
+      // Sauvegarder immédiatement les valeurs dans localStorage
+      // pour que Timetable.tsx les récupère lors de son initialisation
+      localStorage.setItem('edt-last-dept', dept);
+      localStorage.setItem('edt-last-year', year);
+      localStorage.setItem('edt-last-group', 'ALL');
+      
       const newProfile = createProfile(newProfileData);
       setActiveProfile(newProfile.id);
       // Navigation is now handled by App.tsx based on activeProfile state
