@@ -803,6 +803,8 @@ export default function Timetable() {
               onDayChange={setStartDayIndex}
               getDateForColumn={getDateForColumn}
               isTodayColumn={isTodayColumn}
+              week={week}
+              onWeekChange={setWeek}
             />
           )}
 

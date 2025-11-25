@@ -7,6 +7,8 @@ interface DaySelectorProps {
   onDayChange: (index: number) => void;
   getDateForColumn: (dayIndex: number) => Date;
   isTodayColumn: (dayIndex: number) => boolean;
+  week: number;
+  onWeekChange: (week: number) => void;
 }
 
 export const DaySelector: React.FC<DaySelectorProps> = ({
@@ -15,16 +17,28 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
   onDayChange,
   getDateForColumn,
   isTodayColumn,
+  week,
+  onWeekChange,
 }) => {
   const handlePrevious = () => {
     if (selectedDayIndex > 0) {
+      // Jour précédent dans la même semaine
       onDayChange(selectedDayIndex - 1);
+    } else {
+      // Passer à la semaine précédente, vendredi
+      onWeekChange(week - 1 < 1 ? 52 : week - 1);
+      onDayChange(4); // Vendredi
     }
   };
 
   const handleNext = () => {
     if (selectedDayIndex < days.length - 1) {
+      // Jour suivant dans la même semaine
       onDayChange(selectedDayIndex + 1);
+    } else {
+      // Passer à la semaine suivante, lundi
+      onWeekChange(week + 1 > 52 ? 1 : week + 1);
+      onDayChange(0); // Lundi
     }
   };
 
@@ -41,8 +55,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
       <div className="flex items-center justify-between mb-3 px-2">
         <button
           onClick={handlePrevious}
-          disabled={selectedDayIndex === 0}
-          className="p-2 rounded-lg hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg hover:bg-secondary transition-colors"
           aria-label="Jour précédent"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -55,8 +68,7 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
 
         <button
           onClick={handleNext}
-          disabled={selectedDayIndex === days.length - 1}
-          className="p-2 rounded-lg hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg hover:bg-secondary transition-colors"
           aria-label="Jour suivant"
         >
           <ChevronRight className="w-5 h-5" />
