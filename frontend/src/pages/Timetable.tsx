@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useContext } from "react";
 import { Moon, Sun, ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon, Menu, Home, Users, BookOpen, Settings, PanelLeftClose, PanelLeftOpen, DoorOpen } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useProfiles } from "@/hooks/use-profiles";
+import { ProfilesContext } from "@/contexts/ProfilesContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProfileManager } from "@/components/ProfileManager";
 import { FreeRoomsDialog } from "@/components/FreeRoomsDialog";
@@ -205,8 +205,12 @@ export default function Timetable() {
     }
   }, [dayOptions, daysToShow]);
 
-  // Hook de gestion des profils
-  const profilesManager = useProfiles();
+  // Hook de gestion des profils - utiliser le contexte partagé
+  const profilesContext = useContext(ProfilesContext);
+  if (!profilesContext) {
+    throw new Error("Timetable must be used within a ProfilesProvider");
+  }
+  const profilesManager = profilesContext;
   const [week, setWeek] = useState<number>(() => initialWeekInfo.week);
   const [yearNumber, setYearNumber] = useState<number>(() => initialWeekInfo.year);
 
@@ -435,13 +439,11 @@ export default function Timetable() {
                 
                 {/* Navigation principale */}
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                  {/* Home - Retour au profil préféré */}
+                  {/* Home - Retour à la page Welcome */}
                   <button 
                     onClick={() => {
-                      if (profilesManager.activeProfile) {
-                        handleSelectProfile(profilesManager.activeProfile.id);
-                        setMenuOpen(false);
-                      }
+                      profilesManager.setActiveProfile(null);
+                      setMenuOpen(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-secondary transition-colors text-left"
                   >
@@ -728,7 +730,14 @@ export default function Timetable() {
           {/* Navigation semaine avec boutons et calendrier */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setWeek(Math.max(1, week - 1))}
+              onClick={() => {
+                if (week === 1) {
+                  setWeek(52);
+                  setYearNumber(yearNumber - 1);
+                } else {
+                  setWeek(week - 1);
+                }
+              }}
               className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
               aria-label="Semaine précédente"
             >
@@ -751,22 +760,28 @@ export default function Timetable() {
                   selected={selectedDate}
                   onSelect={(date) => {
                     if (date) {
-                      const { week: newWeek } = getISOWeekInfo(date);
+                      const { week: newWeek, year: newYear } = getISOWeekInfo(date);
                       setWeek(newWeek);
+                      setYearNumber(newYear);
                       setSelectedDate(date);
                       setCalendarOpen(false);
                     }
                   }}
                   initialFocus
                   weekStartsOn={1}
-                  fromYear={yearNumber}
-                  toYear={yearNumber}
                 />
               </PopoverContent>
             </Popover>
 
             <button
-              onClick={() => setWeek(week + 1 > 52 ? 1 : week + 1)}
+              onClick={() => {
+                if (week >= 52) {
+                  setWeek(1);
+                  setYearNumber(yearNumber + 1);
+                } else {
+                  setWeek(week + 1);
+                }
+              }}
               className={`flex items-center justify-center ${isMobile ? 'w-9 h-9' : 'w-11 h-11'} rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant`}
               aria-label="Semaine suivante"
             >
@@ -805,6 +820,8 @@ export default function Timetable() {
               isTodayColumn={isTodayColumn}
               week={week}
               onWeekChange={setWeek}
+              yearNumber={yearNumber}
+              onYearChange={setYearNumber}
             />
           )}
 
