@@ -9,6 +9,8 @@ interface DaySelectorProps {
   isTodayColumn: (dayIndex: number) => boolean;
   week: number;
   onWeekChange: (week: number) => void;
+  yearNumber: number;
+  onYearChange: (year: number) => void;
 }
 
 export const DaySelector: React.FC<DaySelectorProps> = ({
@@ -19,6 +21,8 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
   isTodayColumn,
   week,
   onWeekChange,
+  yearNumber,
+  onYearChange,
 }) => {
   const handlePrevious = () => {
     if (selectedDayIndex > 0) {
@@ -26,7 +30,12 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
       onDayChange(selectedDayIndex - 1);
     } else {
       // Passer à la semaine précédente, vendredi
-      onWeekChange(week - 1 < 1 ? 52 : week - 1);
+      if (week === 1) {
+        onWeekChange(52);
+        onYearChange(yearNumber - 1);
+      } else {
+        onWeekChange(week - 1);
+      }
       onDayChange(4); // Vendredi
     }
   };
@@ -37,7 +46,12 @@ export const DaySelector: React.FC<DaySelectorProps> = ({
       onDayChange(selectedDayIndex + 1);
     } else {
       // Passer à la semaine suivante, lundi
-      onWeekChange(week + 1 > 52 ? 1 : week + 1);
+      if (week >= 52) {
+        onWeekChange(1);
+        onYearChange(yearNumber + 1);
+      } else {
+        onWeekChange(week + 1);
+      }
       onDayChange(0); // Lundi
     }
   };
