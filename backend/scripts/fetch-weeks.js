@@ -15,25 +15,45 @@ const DATA_DIR = path.join(__dirname, '..', 'data', 'weeks');
 
 // Configuration des semaines à télécharger
 const DEPTS = ['INFO', 'CS', 'GIM', 'RT'];
-const CURRENT_YEAR = 2025;
+
+// Fonction pour obtenir l'année courante dynamiquement
+function getCurrentYear() {
+  return new Date().getFullYear();
+}
 
 // Fonction pour obtenir la semaine ISO actuelle
 function getCurrentWeek() {
   const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const diff = now - start;
-  const oneWeek = 1000 * 60 * 60 * 24 * 7;
-  return Math.ceil(diff / oneWeek);
+  const temp = new Date(now.getTime());
+  temp.setHours(0, 0, 0, 0);
+  const dayNum = temp.getDay() || 7;
+  temp.setDate(temp.getDate() + 4 - dayNum);
+  const yearStart = new Date(temp.getFullYear(), 0, 1);
+  const week = Math.ceil((((temp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return { week, year: temp.getFullYear() };
 }
 
-// Ne télécharger que les 8 prochaines semaines (2 mois)
-const currentWeek = getCurrentWeek();
-const WEEKS = Array.from({ length: 8 }, (_, i) => {
-  let week = currentWeek + i;
-  // Gérer le passage à l'année suivante (semaine 53 -> 1)
-  if (week > 53) week = week - 53;
-  return week;
-});
+// Générer la liste des semaines à télécharger (8 prochaines semaines)
+// Gère automatiquement le passage à l'année suivante
+function getWeeksToFetch(count = 8) {
+  const { week: currentWeek, year: currentYear } = getCurrentWeek();
+  const weeks = [];
+  
+  for (let i = 0; i < count; i++) {
+    let week = currentWeek + i;
+    let year = currentYear;
+    
+    // Gérer le passage à l'année suivante (semaine > 52)
+    if (week > 52) {
+      week = week - 52;
+      year = currentYear + 1;
+    }
+    
+    weeks.push({ week, year });
+  }
+  
+  return weeks;
+}
 
 async function fetchWeek(dept, week, year) {
   const url = `${API_BASE}/?dept=${dept}&week=${week}&year=${year}&work_copy=0`;
@@ -79,7 +99,18 @@ function saveWeek(dept, week, year, data) {
 }
 
 async function main() {
-  console.log('🚀 Starting JSON fetch...\n');
+  const { week: currentWeek, year: currentYear } = getCurrentWeek();
+  const weeksToFetch = getWeeksToFetch(8);
+  
+  console.log('🚀 Starting JSON fetch...');
+  console.log(`📅 Current: Week ${currentWeek} of ${currentYear}`);
+  console.log(`📆 Fetching ${weeksToFetch.length} weeks:\n`);
+  
+  // Afficher les semaines qui seront téléchargées
+  weeksToFetch.forEach(({ week, year }) => {
+    console.log(`   - Week ${week}/${year}`);
+  });
+  console.log('');
   
   // Créer le dossier data/weeks s'il n'existe pas
   if (!fs.existsSync(DATA_DIR)) {
@@ -92,11 +123,11 @@ async function main() {
   for (const dept of DEPTS) {
     console.log(`\n📚 Department: ${dept}`);
     
-    for (const week of WEEKS) {
-      const data = await fetchWeek(dept, week, CURRENT_YEAR);
+    for (const { week, year } of weeksToFetch) {
+      const data = await fetchWeek(dept, week, year);
       
       if (data) {
-        saveWeek(dept, week, CURRENT_YEAR, data);
+        saveWeek(dept, week, year, data);
         totalSaved++;
       } else {
         totalSkipped++;
