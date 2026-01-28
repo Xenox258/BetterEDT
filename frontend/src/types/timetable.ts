@@ -51,3 +51,13 @@ export type Profile = {
   groupFilter: string;
   theme: 'light' | 'dark';
 };
+
+export type Tutor = {
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  departments: string[];
+};
+
+export type TutorsMap = Record<string, Tutor>;

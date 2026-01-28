@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useContext } from "react";
-import { Moon, Sun, ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon, Menu, Home, Users, BookOpen, Settings, PanelLeftClose, PanelLeftOpen, DoorOpen } from "lucide-react";
+import { Moon, Sun, ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon, Menu, Home, Users, BookOpen, Settings, PanelLeftClose, PanelLeftOpen, DoorOpen, Mail, Copy, Check, GraduationCap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -9,10 +9,12 @@ import { ProfilesContext } from "@/contexts/ProfilesContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProfileManager } from "@/components/ProfileManager";
 import { FreeRoomsDialog } from "@/components/FreeRoomsDialog";
+import { TutorScheduleDialog } from "@/components/TutorScheduleDialog";
 import { CourseCard } from "@/components/CourseCard";
 import { DaySelector } from "@/components/DaySelector";
 import { DayRangeSelector } from "@/components/DayRangeSelector";
 import { useScheduleData } from "@/hooks/useScheduleData";
+import { useTutors } from "@/hooks/useTutors";
 import { useDisplayTimes } from "@/hooks/useDisplayTimes";
 import { DayHeaders } from "@/components/DayHeaders";
 import { TimeColumn } from "@/components/TimeColumn";
@@ -114,6 +116,43 @@ const getISOWeekInfo = (date: Date) => {
 
 const getCurrentIsoWeekInfo = () => getISOWeekInfo(new Date());
 
+// Fonction utilitaire pour copier dans le presse-papier (compatible HTTP)
+const copyToClipboard = (text: string): boolean => {
+  // Créer un input temporaire visible (nécessaire pour certains navigateurs sur HTTP)
+  const input = document.createElement('input');
+  input.setAttribute('value', text);
+  input.setAttribute('readonly', '');
+  input.style.position = 'absolute';
+  input.style.left = '-9999px';
+  document.body.appendChild(input);
+  
+  // Sauvegarder la sélection actuelle
+  const selected = document.getSelection()?.rangeCount 
+    ? document.getSelection()?.getRangeAt(0) 
+    : null;
+  
+  // Sélectionner le contenu de l'input
+  input.select();
+  input.setSelectionRange(0, 99999); // Pour mobile
+  
+  let success = false;
+  try {
+    success = document.execCommand('copy');
+  } catch (err) {
+    console.error('Copy failed:', err);
+  }
+  
+  document.body.removeChild(input);
+  
+  // Restaurer la sélection précédente
+  if (selected && document.getSelection()) {
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(selected);
+  }
+  
+  return success;
+};
+
 const getInitialWeekInfo = () => {
   const now = new Date();
   const reference = new Date(now);
@@ -174,6 +213,8 @@ export default function Timetable() {
   const [configEdtOpen, setConfigEdtOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<CoursAPI | null>(null);
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
+  const [tutorScheduleOpen, setTutorScheduleOpen] = useState(false);
   const [now, setNow] = useState(new Date());
   const [timeColumnExpanded, setTimeColumnExpanded] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
@@ -277,6 +318,9 @@ export default function Timetable() {
   // Fetch + filters moved to hook
   // year contient l'année de formation ("1", "2", "3" ou "ALL")
   const { courses: rawCourses, coursesByDay: rawCoursesByDay, allGroups: hookAllGroups, loading, error } = useScheduleData(dept, year, week);
+  
+  // Hook pour récupérer les informations des tuteurs
+  const { getTutorInfo, getTutorFullName } = useTutors(dept);
   
   // Filtrer les cours par groupe si nécessaire
   const hookCourses = useMemo(() => {
@@ -559,6 +603,15 @@ export default function Timetable() {
                       </button>
                     )}
                   />
+
+                  {/* EDT des professeurs - Intégré au menu */}
+                  <button
+                    onClick={() => { setMenuOpen(false); setTutorScheduleOpen(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-secondary transition-colors text-left"
+                  >
+                    <GraduationCap className="w-5 h-5" />
+                    <span className="font-medium">EDT des professeurs</span>
+                  </button>
                   
                   {/* Profile - Intégré au menu */}
                   <ProfileManager
@@ -694,6 +747,24 @@ export default function Timetable() {
 
             {/* Free Rooms Dialog - masqué sur mobile (dans le menu) */}
             {!isMobile && <FreeRoomsDialog week={week} year={yearNumber} apiBase={API_BASE} />}
+
+            {/* EDT des professeurs - masqué sur mobile (dans le menu) */}
+            {!isMobile && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setTutorScheduleOpen(true)}
+                    className="flex items-center justify-center w-11 h-11 rounded-xl bg-card border border-border hover:bg-muted transition-base shadow-elegant"
+                    aria-label="EDT des professeurs"
+                  >
+                    <GraduationCap className="h-5 w-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>EDT des professeurs</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Theme toggle - masqué sur mobile (dans le menu) */}
             {!isMobile && (
@@ -1151,10 +1222,8 @@ export default function Timetable() {
                           <div
                             key={`${c.id}-${c.day}-${c.start_time}`}
                             onClick={() => {
-                              if (isMobile) {
-                                setSelectedCourse(c);
-                                setCourseDialogOpen(true);
-                              }
+                              setSelectedCourse(c);
+                              setCourseDialogOpen(true);
                             }}
                             className={`absolute rounded-lg cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md ${isMobile ? 'active:scale-[0.98]' : ''} group overflow-hidden flex flex-col border-l-4 ${
                               !isMobile && daysToShow === 1 ? 'items-center text-center' : ''
@@ -1219,65 +1288,132 @@ export default function Timetable() {
         </div>
       )}
 
-      {/* Dialog pour afficher les détails du cours en vue mobile */}
-      {isMobile && selectedCourse && (
+      {/* Dialog pour afficher les détails du cours */}
+      {selectedCourse && (
         <Dialog open={courseDialogOpen} onOpenChange={setCourseDialogOpen}>
-          <DialogContent className="max-w-[90vw] rounded-xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold mb-2" style={{ color: selectedCourse.display_color_bg }}>
-                {selectedCourse.module_name}
-              </DialogTitle>
-              <DialogDescription className="text-sm">
-                {selectedCourse.module_abbrev || selectedCourse.module_name}.
-              </DialogDescription>
+          <DialogContent className={isMobile ? "max-w-[90vw] rounded-xl" : "sm:max-w-md"}>
+            <DialogHeader className="pb-2">
+              {/* Header avec indicateur de couleur */}
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-1.5 h-14 rounded-full flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: selectedCourse.display_color_bg }}
+                />
+                <div className="flex-1 min-w-0">
+                  <DialogTitle className="text-xl font-bold leading-tight" style={{ color: selectedCourse.display_color_bg }}>
+                    {selectedCourse.module_name}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm mt-1 flex items-center gap-2">
+                    <span>{selectedCourse.module_abbrev}</span>
+                    {/* Badge type de cours */}
+                    {(selectedCourse.is_graded || selectedCourse.course_type === 'DS') ? (
+                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded font-bold">
+                        📝 DS
+                      </span>
+                    ) : selectedCourse.course_type && (
+                      <span 
+                        className="text-[10px] px-2 py-0.5 rounded font-bold"
+                        style={{ 
+                          backgroundColor: `${selectedCourse.display_color_bg}30`,
+                          color: selectedCourse.display_color_bg 
+                        }}
+                      >
+                        {selectedCourse.course_type}
+                      </span>
+                    )}
+                  </DialogDescription>
+                </div>
+              </div>
             </DialogHeader>
             
-            <div className="space-y-4 py-2">
-              {/* Badges */}
-              <div className="flex items-center gap-2">
-                {(selectedCourse.is_graded || selectedCourse.course_type === 'DS') && (
-                  <span className="text-[10px] px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md font-bold shadow-sm">
-                    📝 DS
-                  </span>
-                )}
-                {selectedCourse.course_type && selectedCourse.course_type !== 'DS' && (
-                  <span className="text-[11px] px-2 py-0.5 bg-primary/50 text-primary-foreground font-bold rounded-md border border-primary/60">
-                    {selectedCourse.course_type}
-                  </span>
-                )}
-              </div>
-
-              {/* Horaires */}
-              <div className="flex items-center gap-2 text-base">
-                <span className="font-semibold">🕐 Horaire :</span>
-                <span>{formatTime(selectedCourse.start_time)} - {formatTime(selectedCourse.end_time)}</span>
+            <div className="space-y-3 pt-2">
+              {/* Horaires & Salle - sur la même ligne */}
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2 flex-1 p-2.5 bg-muted/40 rounded-lg">
+                  <span className="text-lg">🕐</span>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Horaire</div>
+                    <div className="font-medium">{formatTime(selectedCourse.start_time)} - {formatTime(selectedCourse.end_time)}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-1 p-2.5 bg-muted/40 rounded-lg">
+                  <span className="text-lg">📍</span>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Salle</div>
+                    <div className="font-medium">{selectedCourse.room_name}</div>
+                  </div>
+                </div>
               </div>
 
               {/* Professeur */}
-              <div className="flex items-center gap-2 text-base">
-                <span className="font-semibold">👤 Professeur :</span>
-                <span>{selectedCourse.tutor_username}</span>
-              </div>
-
-              {/* Salle */}
-              <div className="flex items-center gap-2 text-base">
-                <span className="font-semibold">📍 Salle :</span>
-                <span>{selectedCourse.room_name}</span>
+              <div className="p-3 bg-muted/40 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">👤</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground mb-0.5">Professeur</div>
+                    <div className="font-medium">
+                      {getTutorFullName(selectedCourse.tutor_username)}
+                      <span className="text-muted-foreground font-normal ml-1.5">({selectedCourse.tutor_username})</span>
+                    </div>
+                    {getTutorInfo(selectedCourse.tutor_username)?.email && (() => {
+                      const tutorEmail = getTutorInfo(selectedCourse.tutor_username)?.email || '';
+                      
+                      return (
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <a
+                            href={`mailto:${tutorEmail}`}
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline min-w-0"
+                          >
+                            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate">{tutorEmail}</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Essayer la copie automatique
+                              const success = copyToClipboard(tutorEmail);
+                              // Toujours montrer le feedback visuel
+                              setEmailCopied(true);
+                              setTimeout(() => setEmailCopied(false), 2000);
+                              // Si échec, afficher le prompt pour copie manuelle
+                              if (!success) {
+                                window.prompt('Copier cet email:', tutorEmail);
+                              }
+                            }}
+                            className="flex-shrink-0 p-1 rounded cursor-pointer hover:bg-muted/80 focus:outline-none"
+                            title="Copier l'email"
+                          >
+                            {emailCopied ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
 
               {/* Groupes */}
               {selectedCourse.groups.length > 0 && (
-                <div>
-                  <span className="font-semibold text-base">👥 Groupes :</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {sortGroups([...selectedCourse.groups]).map(g => (
-                      <span 
-                        key={g} 
-                        className="text-sm px-3 py-1 bg-secondary rounded-lg font-medium"
-                      >
-                        {g}
-                      </span>
-                    ))}
+                <div className="p-3 bg-muted/40 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg">👥</span>
+                    <div className="flex-1">
+                      <div className="text-xs text-muted-foreground mb-2">Groupes</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sortGroups([...selectedCourse.groups]).map(g => (
+                          <span 
+                            key={g} 
+                            className="text-sm px-2.5 py-1 bg-background border rounded-md font-medium"
+                          >
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1285,6 +1421,14 @@ export default function Timetable() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Dialog EDT des profs */}
+      <TutorScheduleDialog
+        open={tutorScheduleOpen}
+        onOpenChange={setTutorScheduleOpen}
+        initialWeek={week}
+        initialYear={yearNumber}
+      />
       </div>
     </TooltipProvider>
   );
