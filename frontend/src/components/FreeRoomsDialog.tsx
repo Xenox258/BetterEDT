@@ -83,12 +83,17 @@ export function FreeRoomsDialog({ week, year, apiBase, renderTrigger }: FreeRoom
     // Use timeSlots from API (course start times only)
     const timeSlots = data.timeSlots || Object.keys(daySchedule).sort();
 
+    // Filtrer les salles "ext" (salles extérieures)
+    const filterExtRooms = (rooms: string[]) => 
+      rooms.filter(room => !room.toLowerCase().includes('ext'));
+
+    const filteredAllRooms = filterExtRooms(data.rooms);
+
     return (
       <div className="space-y-2">
         {timeSlots.map((time) => {
-          const freeRooms = daySchedule[time];
-          const allRooms = data.rooms;
-          const occupiedCount = allRooms.length - freeRooms.length;
+          const freeRooms = filterExtRooms(daySchedule[time]);
+          const occupiedCount = filteredAllRooms.length - freeRooms.length;
 
           return (
             <div
@@ -98,7 +103,7 @@ export function FreeRoomsDialog({ week, year, apiBase, renderTrigger }: FreeRoom
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-sm">{time}</span>
                 <span className="text-xs text-muted-foreground">
-                  {freeRooms.length}/{allRooms.length} libres
+                  {freeRooms.length}/{filteredAllRooms.length} libres
                 </span>
               </div>
 
