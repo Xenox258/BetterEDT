@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useContext } from "react";
-import { Moon, Sun, ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon, Menu, Home, Users, BookOpen, Settings, PanelLeftClose, PanelLeftOpen, DoorOpen, Mail, Copy, Check, GraduationCap } from "lucide-react";
+import { Moon, Sun, ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon, Menu, Home, Users, BookOpen, Settings, PanelLeftClose, PanelLeftOpen, DoorOpen, Mail, GraduationCap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -116,43 +116,6 @@ const getISOWeekInfo = (date: Date) => {
 
 const getCurrentIsoWeekInfo = () => getISOWeekInfo(new Date());
 
-// Fonction utilitaire pour copier dans le presse-papier (compatible HTTP)
-const copyToClipboard = (text: string): boolean => {
-  // Créer un input temporaire visible (nécessaire pour certains navigateurs sur HTTP)
-  const input = document.createElement('input');
-  input.setAttribute('value', text);
-  input.setAttribute('readonly', '');
-  input.style.position = 'absolute';
-  input.style.left = '-9999px';
-  document.body.appendChild(input);
-  
-  // Sauvegarder la sélection actuelle
-  const selected = document.getSelection()?.rangeCount 
-    ? document.getSelection()?.getRangeAt(0) 
-    : null;
-  
-  // Sélectionner le contenu de l'input
-  input.select();
-  input.setSelectionRange(0, 99999); // Pour mobile
-  
-  let success = false;
-  try {
-    success = document.execCommand('copy');
-  } catch (err) {
-    console.error('Copy failed:', err);
-  }
-  
-  document.body.removeChild(input);
-  
-  // Restaurer la sélection précédente
-  if (selected && document.getSelection()) {
-    document.getSelection()?.removeAllRanges();
-    document.getSelection()?.addRange(selected);
-  }
-  
-  return success;
-};
-
 const getInitialWeekInfo = () => {
   const now = new Date();
   const reference = new Date(now);
@@ -213,7 +176,6 @@ export default function Timetable() {
   const [configEdtOpen, setConfigEdtOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<CoursAPI | null>(null);
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
-  const [emailCopied, setEmailCopied] = useState(false);
   const [tutorScheduleOpen, setTutorScheduleOpen] = useState(false);
   const [now, setNow] = useState(new Date());
   const [timeColumnExpanded, setTimeColumnExpanded] = useState<boolean>(() => {
@@ -1296,14 +1258,14 @@ export default function Timetable() {
               {/* Header avec indicateur de couleur */}
               <div className="flex items-start gap-3">
                 <div
-                  className="w-1.5 h-14 rounded-full flex-shrink-0 mt-0.5"
+                  className="w-1.5 min-h-[3.5rem] rounded-full flex-shrink-0"
                   style={{ backgroundColor: selectedCourse.display_color_bg }}
                 />
-                <div className="flex-1 min-w-0">
-                  <DialogTitle className="text-xl font-bold leading-tight" style={{ color: selectedCourse.display_color_bg }}>
+                <div className="flex-1 min-w-0 text-left">
+                  <DialogTitle className="text-xl font-bold leading-tight break-words" style={{ color: selectedCourse.display_color_bg }}>
                     {selectedCourse.module_name}
                   </DialogTitle>
-                  <DialogDescription className="text-sm mt-1 flex items-center gap-2">
+                  <DialogDescription className="text-sm mt-1 flex flex-wrap items-center gap-2">
                     <span>{selectedCourse.module_abbrev}</span>
                     {/* Badge type de cours */}
                     {(selectedCourse.is_graded || selectedCourse.course_type === 'DS') ? (
@@ -1355,43 +1317,15 @@ export default function Timetable() {
                       {getTutorFullName(selectedCourse.tutor_username)}
                       <span className="text-muted-foreground font-normal ml-1.5">({selectedCourse.tutor_username})</span>
                     </div>
-                    {getTutorInfo(selectedCourse.tutor_username)?.email && (() => {
-                      const tutorEmail = getTutorInfo(selectedCourse.tutor_username)?.email || '';
-                      
-                      return (
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <a
-                            href={`mailto:${tutorEmail}`}
-                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline min-w-0"
-                          >
-                            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                            <span className="truncate">{tutorEmail}</span>
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              // Essayer la copie automatique
-                              const success = copyToClipboard(tutorEmail);
-                              // Toujours montrer le feedback visuel
-                              setEmailCopied(true);
-                              setTimeout(() => setEmailCopied(false), 2000);
-                              // Si échec, afficher le prompt pour copie manuelle
-                              if (!success) {
-                                window.prompt('Copier cet email:', tutorEmail);
-                              }
-                            }}
-                            className="flex-shrink-0 p-1 rounded cursor-pointer hover:bg-muted/80 focus:outline-none"
-                            title="Copier l'email"
-                          >
-                            {emailCopied ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </button>
-                        </div>
-                      );
-                    })()}
+                    {getTutorInfo(selectedCourse.tutor_username)?.email && (
+                      <a
+                        href={`mailto:${getTutorInfo(selectedCourse.tutor_username)?.email}`}
+                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-1.5"
+                      >
+                        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{getTutorInfo(selectedCourse.tutor_username)?.email}</span>
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
