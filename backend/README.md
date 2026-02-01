@@ -98,15 +98,15 @@ Les variables d'environnement peuvent être définies dans un fichier `.env` :
 
 PORT=8000
 
-HOST=0.0.0.0```env
+HOST=<HOST>```env
 
 # Base de données
 
-# Source des donnéesDB_HOST=10.0.0.2
+# Source des donnéesDB_HOST=<DB_HOST>
 
 SOURCE_BASE=https://flopedt.iut-blagnac.frDB_USER=flopedt_user
 
-```DB_PASSWORD=edtpassword
+```DB_PASSWORD=<DB_PASSWORD>
 
 DB_NAME=flopedt_db
 
@@ -118,7 +118,7 @@ DB_NAME=flopedt_db
 
 PORT=8000
 
-Le script `fetch-weeks.js` télécharge les emplois du temps depuis flOpEDT et les stocke dans `data/weeks/{DEPT}/{YEAR}-W{WEEK}.json`.HOST=0.0.0.0
+Le script `fetch-weeks.js` télécharge les emplois du temps depuis flOpEDT et les stocke dans `data/weeks/{DEPT}/{YEAR}-W{WEEK}.json`.HOST=<HOST>
 
 
 
@@ -138,13 +138,13 @@ node scripts/fetch-weeks.js
 
 # Créer la structure
 
-| Option | Description | Exemple |mysql -h 10.0.0.2 -u flopedt_user -p < schema.sql
+| Option | Description | Exemple |mysql -h <DB_HOST> -u flopedt_user -p < schema.sql
 
 |--------|-------------|---------|
 
 | `--depts` | Départements à télécharger (séparés par virgules) | `--depts=INFO,CS` |# Ou via Docker
 
-| `--weeks` | Semaines à télécharger (range ou liste) | `--weeks=41` ou `--weeks=38-51` |docker exec mariadb mariadb -u flopedt_user -p'edtpassword' < schema.sql
+| `--weeks` | Semaines à télécharger (range ou liste) | `--weeks=41` ou `--weeks=38-51` |docker exec mariadb mariadb -u flopedt_user -p'<DB_PASSWORD>' < schema.sql
 
 | `--year` | Année calendaire | `--year=2025` |```
 
@@ -288,9 +288,9 @@ Chaque fichier contient un tableau de cours au format flOpEDT :```
 
 **Champs importants** :
 
-- `id` : Identifiant unique du cours- **Production** : `http://152.228.219.56:8000`
+- `id` : Identifiant unique du cours- **Production** : `<PUBLIC_API_URL>`
 
-- `day` : Jour de la semaine (`m`, `tu`, `w`, `th`, `f`)- **Local (RPi)** : `http://10.0.0.2:8000`
+- `day` : Jour de la semaine (`m`, `tu`, `w`, `th`, `f`)- **Local (RPi)** : `<LOCAL_API_URL>`
 
 - `start_time` : Heure de début en minutes depuis minuit (665 = 11h05)
 
@@ -310,9 +310,9 @@ GET /api/depts
 
 ```json
 
-- **Production** : `http://152.228.219.56:8000`["CS", "GIM", "INFO", "RT"]
+- **Production** : `<PUBLIC_API_URL>`["CS", "GIM", "INFO", "RT"]
 
-- **Local (RPi)** : `http://10.0.0.2:8000````
+- **Local (RPi)** : `<LOCAL_API_URL>````
 
 
 
@@ -650,7 +650,7 @@ curl "https://flopedt.iut-blagnac.fr/en/api/fetch/scheduledcourses/?dept=INFO&ye
 
 ### Le serveur ne démarre pas# Vérifier la connexion à la base de données
 
-docker exec mariadb mariadb -u flopedt_user -p'edtpassword' -e "SELECT 1"
+docker exec mariadb mariadb -u flopedt_user -p'<DB_PASSWORD>' -e "SELECT 1"
 
 ```bash```
 
@@ -698,7 +698,7 @@ ls -la data/weeks/INFO/2025-W41.json### Cours manquants dans l'API
 
 node scripts/fetch-weeks.js --depts=INFO --weeks=41 --year=2025# Vérifier le nombre de cours en base
 
-docker exec mariadb mariadb -u flopedt_user -p'edtpassword' flopedt_db -e "
+docker exec mariadb mariadb -u flopedt_user -p'<DB_PASSWORD>' flopedt_db -e "
 
 # Vérifier les permissionsSELECT dept, train_prog, COUNT(*) as total 
 

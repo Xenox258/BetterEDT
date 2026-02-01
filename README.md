@@ -24,12 +24,12 @@ Application complète avec backend API et frontend React pour afficher les emplo
 ┌─────────────────┐
 │  flOpEDT API    │  https://flopedt.iut-blagnac.fr
 └────────┬────────┘
-         │ fetch-weeks.js
+         │ fetch-weeks-db.js
          ↓
 ┌─────────────────┐
-│   JSON files    │  data/weeks/{DEPT}/{YEAR}-W{WEEK}.json
+│    MariaDB      │  schéma: department/week/course/…
 └────────┬────────┘
-         │
+         │ SQL
          ↓
 ┌─────────────────┐
 │  Express API    │  Port 8000 (Raspberry Pi)
@@ -42,10 +42,10 @@ Application complète avec backend API et frontend React pour afficher les emplo
 ```
 
 **Points clés** :
-- Architecture **sans base de données** (fichiers JSON)
-- Serveur API léger (~47 lignes)
+- Architecture **avec base de données** (MariaDB)
+- Synchronisation flOpEDT → DB via script
 - Frontend React avec TypeScript
-- Données synchronisées quotidiennement via cron
+- Données synchronisées périodiquement via cron
 
 ## 📁 Structure du projet
 
@@ -54,12 +54,11 @@ edt-iut/
 ├── backend/              # API Express + scripts
 │   ├── index.js          # Serveur API (47 lignes)
 │   ├── scripts/
-│   │   └── fetch-weeks.js    # Téléchargement des EDTs
-│   ├── data/
-│   │   └── weeks/        # Fichiers JSON par dept/semaine
+│   │   └── fetch-weeks-db.js # Sync flOpEDT → MariaDB
+│   ├── db.js             # Connexion MariaDB
 │   ├── README.md         # Documentation backend
 │   ├── DEVELOPER.md      # Doc développeur
-│   └── docs-archive/     # Ancienne doc (version DB)
+│   └── docs-archive/     # Archives documentation
 │
 └── frontend/             # Application React
     ├── src/
@@ -88,7 +87,7 @@ cd edt-iut
 # Backend
 cd backend
 npm install
-node scripts/fetch-weeks.js --weeks=41-51 --year=2025 --depts=INFO,CS,GIM,RT
+node scripts/fetch-weeks-db.js
 node index.js
 
 # Frontend (dans un autre terminal)
@@ -137,14 +136,14 @@ sudo journalctl -u edt-api -f
 
 ```cron
 # Téléchargement quotidien à minuit
-0 0 * * * cd /srv/.../backend && node scripts/fetch-weeks.js --weeks=1-53 --year=$(date +\%Y) --depts=INFO,CS,GIM,RT
+0 0 * * * cd /srv/.../backend && node scripts/fetch-weeks-db.js
 ```
 
 ### Reverse Proxy (Nginx)
 
 Le backend tourne sur le port 8000 et est accessible via reverse proxy :
-- **Public** : http://152.228.219.56:8000
-- **Local** : http://10.0.0.2:8000
+- **Public** : (URL publique configurée)
+- **Local** : (URL locale configurée)
 
 ## 🎨 Frontend
 
@@ -164,28 +163,11 @@ Le backend tourne sur le port 8000 et est accessible via reverse proxy :
 - **Thème** : Mode sombre/clair
 - **PWA ready** : Service Worker pour offline
 
-## 📊 Format des données
+## 📊 Données & base de données
 
-### Structure JSON (flOpEDT)
+Les cours sont stockés dans MariaDB (tables `department`, `week`, `course`, `room`, `module`, `tutor`, `group`, `course_group`).
 
-```json
-{
-  "id": 521552,
-  "room": { "name": "B105" },
-  "start_time": 665,
-  "day": "f",
-  "course": {
-    "groups": [{ "train_prog": "BUT1", "name": "2A" }],
-    "module": {
-      "name": "Développement Web",
-      "abbrev": "DevWeb",
-      "display": { "color_bg": "#ffeb3b" }
-    },
-    "type": "TP"
-  },
-  "tutor": "MDM"
-}
-```
+Voir le schéma et l’usage des tables dans [backend/DB.md](backend/DB.md).
 
 ### Hiérarchie des groupes
 
@@ -208,12 +190,9 @@ pkill -f "node.*index.js"
 ### Cours manquants
 
 ```bash
-# Vérifier les fichiers JSON
-ls -lh backend/data/weeks/INFO/
-
-# Re-télécharger
+# Relancer une synchronisation DB
 cd backend
-node scripts/fetch-weeks.js --depts=INFO --weeks=41 --year=2025
+node scripts/fetch-weeks-db.js
 ```
 
 ### Frontend n'affiche rien
@@ -228,14 +207,13 @@ curl http://localhost:8000/api/schedule/INFO/2025/41
 
 ## 📈 Historique
 
-### Version actuelle (Novembre 2025)
+### Version Passée (Novembre 2025)
 
-**Architecture JSON** : Simplification majeure, suppression de la base de données.
+**Architecture JSON** : Stockage des cours dans des fichiers JSON temporaires
 
-### Ancienne version (Septembre 2025 - Octobre 2025)
+### Version actuelle (Février 2026)
 
-**Architecture DB** : Utilisation de MariaDB pour stocker les cours.  
-Documentation archivée dans [`backend/docs-archive/`](backend/docs-archive/).
+**Architecture DB** : Utilisation de MariaDB pour stocker les cours.
 
 ## 📞 Support
 

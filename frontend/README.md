@@ -376,7 +376,7 @@ Puis ouvrir `https://<host>:4173` (ou via tunnel HTTPS) pour valider l'installat
 ### Variables d'Environnement
 ```bash
 # .env
-VITE_API_URL=http://152.228.219.56:8000
+VITE_API_URL=<API_BASE_URL>
 ```
 
 ### Tailwind Custom

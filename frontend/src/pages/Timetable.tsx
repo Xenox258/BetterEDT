@@ -217,6 +217,11 @@ export default function Timetable() {
   const [week, setWeek] = useState<number>(() => initialWeekInfo.week);
   const [yearNumber, setYearNumber] = useState<number>(() => initialWeekInfo.year);
 
+  const isDateInSelectedWeek = React.useCallback((date: Date) => {
+    const info = getISOWeekInfo(date);
+    return info.week === week && info.year === yearNumber;
+  }, [week, yearNumber]);
+
   // Charger le profil actif au démarrage
   useEffect(() => {
     if (profilesManager.activeProfile) {
@@ -397,11 +402,25 @@ export default function Timetable() {
   const displayTimes = useDisplayTimes(courses, dayStartHour, dayEndHour);
 
   const isoWeekStartDate = React.useMemo(() => getISOWeekStartDate(week, yearNumber), [week, yearNumber]);
+  const currentMonthLabel = React.useMemo(
+    () =>
+      isoWeekStartDate.toLocaleDateString("fr-FR", {
+        month: "long",
+        year: "numeric",
+      }),
+    [isoWeekStartDate]
+  );
   const getDateForColumn = React.useCallback((dayIndex: number) => {
     const base = new Date(isoWeekStartDate);
     base.setDate(base.getDate() + dayIndex);
     return base;
   }, [isoWeekStartDate]);
+
+  useEffect(() => {
+    if (!selectedDate || !isDateInSelectedWeek(selectedDate)) {
+      setSelectedDate(isoWeekStartDate);
+    }
+  }, [isoWeekStartDate, isDateInSelectedWeek, selectedDate]);
 
   const nowInfo = React.useMemo(() => getISOWeekInfo(now), [now]);
   const isCurrentWeek = nowInfo.week === week && nowInfo.year === yearNumber;
@@ -823,6 +842,11 @@ export default function Timetable() {
           </div>
         </div>
       </header>
+
+      {/* Month label above timetable */}
+      <div className={`${isMobile ? "mb-3" : "mb-6"} text-sm font-semibold text-muted-foreground capitalize`}>
+        {currentMonthLabel}
+      </div>
 
       {/* Empty state */}
       {courses.length === 0 && (

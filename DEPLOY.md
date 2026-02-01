@@ -20,6 +20,8 @@ Cela va :
 - Le frontend sera accessible sur http://localhost
 - Le backend sera accessible sur http://localhost:8000
 
+⚠️ La base de données MariaDB n’est pas incluse dans ce compose. Voir la section “Base de données” ci-dessous.
+
 ### Option 2 : Seulement le Frontend
 
 ```bash
@@ -118,9 +120,36 @@ Pour la production, créez un fichier `.env` :
 # Backend
 NODE_ENV=production
 PORT=8000
+DB_HOST=<DB_HOST>
+DB_PORT=<DB_PORT>
+DB_NAME=<DB_NAME>
+DB_USER=<DB_USER>
+DB_PASSWORD=<DB_PASSWORD>
 
 # Frontend (si nécessaire)
 VITE_API_URL=https://api.votredomaine.fr
+
+## 🗄️ Base de données (MariaDB)
+
+Le backend lit/écrit les cours dans MariaDB. Exemple de lancement local :
+
+```bash
+docker run -d --name edt-mariadb \
+  -e MYSQL_ROOT_PASSWORD=<ROOT_PASSWORD> \
+  -e MYSQL_DATABASE=<DB_NAME> \
+  -e MYSQL_USER=<DB_USER> \
+  -e MYSQL_PASSWORD=<DB_PASSWORD> \
+  -p 3306:3306 \
+  -v $(pwd)/mariadb-data:/var/lib/mysql \
+  mariadb:11
+```
+
+Initialisation et synchronisation des données :
+
+```bash
+cd backend
+node scripts/fetch-weeks-db.js
+```
 ```
 
 ## 📊 Monitoring

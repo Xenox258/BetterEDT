@@ -7,7 +7,7 @@ services:
     container_name: edt-iut-backend
     restart: unless-stopped
     ports:
-      - "10.0.0.2:3005:8000"
+      - "3005:8000"
     volumes:
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
@@ -27,7 +27,7 @@ services:
     container_name: edt-iut-frontend
     restart: unless-stopped
     ports:
-      - "10.0.0.2:3004:80"
+      - "3004:80"
     depends_on:
       - backend
     networks:
