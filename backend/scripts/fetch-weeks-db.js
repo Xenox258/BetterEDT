@@ -1,10 +1,9 @@
 /**
  * Script pour télécharger les cours depuis flOpEDT
  * et les enregistrer dans MariaDB (tables department/week/course/...).
- * Usage: node scripts/fetch-weeks.js
+ * Usage: node scripts/fetch-weeks-db.js
  */
 
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { pool as db } from "../db.js";
@@ -26,6 +25,7 @@ function getCurrentWeek() {
   const week = Math.ceil(((temp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return { week, year: temp.getFullYear() };
 }
+
 function getFutureWeeks(count = 15) {
   const { week: currentWeek, year: currentYear } = getCurrentWeek();
   const weeks = [];
@@ -44,7 +44,6 @@ function getFutureWeeks(count = 15) {
 
   return weeks;
 }
-
 
 // --- Appels API flOpEDT ---
 async function fetchWeek(dept, week, year) {
@@ -76,11 +75,13 @@ async function upsertWeek(conn, deptCode, year, weekNum) {
     [deptCode]
   );
   const deptId = dept.id;
+
   const [rows] = await conn.query(
     "SELECT id FROM week WHERE dept_id = ? AND year = ? AND week_num = ?",
     [deptId, year, weekNum]
   );
   if (rows.length) return rows[0].id;
+
   const [res] = await conn.query(
     "INSERT INTO week(dept_id, year, week_num) VALUES (?,?,?)",
     [deptId, year, weekNum]
@@ -92,10 +93,7 @@ async function upsertRoom(conn, name) {
   if (!name) return null;
   const [rows] = await conn.query("SELECT id FROM room WHERE name = ?", [name]);
   if (rows.length) return rows[0].id;
-  const [res] = await conn.query(
-    "INSERT INTO room(name) VALUES (?)",
-    [name]
-  );
+  const [res] = await conn.query("INSERT INTO room(name) VALUES (?)", [name]);
   return res.insertId;
 }
 
@@ -106,6 +104,7 @@ async function upsertModule(conn, mod) {
     [mod.name, mod.abbrev]
   );
   if (rows.length) return rows[0].id;
+
   const [res] = await conn.query(
     "INSERT INTO module(name, abbrev, color_bg, color_txt) VALUES (?,?,?,?)",
     [mod.name, mod.abbrev, mod.display?.color_bg || null, mod.display?.color_txt || null]
@@ -120,6 +119,7 @@ async function upsertTutor(conn, identifier) {
     [identifier]
   );
   if (rows.length) return rows[0].id;
+
   const [res] = await conn.query(
     "INSERT INTO tutor(identifier) VALUES (?)",
     [identifier]
@@ -133,6 +133,7 @@ async function upsertGroup(conn, grp) {
     [grp.name, grp.train_prog]
   );
   if (rows.length) return rows[0].id;
+
   const [res] = await conn.query(
     "INSERT INTO `group`(name, train_prog, is_structural) VALUES (?,?,?)",
     [grp.name, grp.train_prog, false]
@@ -148,15 +149,39 @@ async function saveWeekToDb(dept, week, year, data) {
 
     const weekId = await upsertWeek(conn, dept, year, week);
 
+    // 1) Purge des cours supprimés côté API (source de vérité)
+    // Si data est vide => on fait rien (on arrive ici seulement si data non-null et non-vide)
+    const apiIds = data.map((x) => x.id);
+
+    // Supprimer d'abord les cours absents : si tu as ON DELETE CASCADE sur course_group(course_id)->course(id),
+    // les lignes de course_group seront supprimées automatiquement. [web:56][web:72]
+    await conn.query(
+      `DELETE FROM course
+       WHERE week_id = ?
+         AND id NOT IN (${apiIds.map(() => "?").join(",")})`,
+      [weekId, ...apiIds]
+    );
+
+    // 2) Upsert des cours présents
     for (const item of data) {
       const roomId = await upsertRoom(conn, item.room?.name);
       const moduleId = await upsertModule(conn, item.course?.module);
       const tutorId = await upsertTutor(conn, item.tutor);
 
+      // Remplace REPLACE par INSERT ... ON DUPLICATE KEY UPDATE (pas de delete+insert implicite). [web:92]
       await conn.query(
-        `REPLACE INTO course
+        `INSERT INTO course
            (id, week_id, day, start_time, duration, room_id, course_type, tutor_id, module_id)
-         VALUES (?,?,?,?,?,?,?,?,?)`,
+         VALUES (?,?,?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE
+           week_id = VALUES(week_id),
+           day = VALUES(day),
+           start_time = VALUES(start_time),
+           duration = VALUES(duration),
+           room_id = VALUES(room_id),
+           course_type = VALUES(course_type),
+           tutor_id = VALUES(tutor_id),
+           module_id = VALUES(module_id)`,
         [
           item.id,
           weekId,
@@ -170,11 +195,15 @@ async function saveWeekToDb(dept, week, year, data) {
         ]
       );
 
+      // 3) Groupes: stratégie simple = on enlève tous les liens pour ce cours, puis on remet ceux de l’API
+      // (plus simple que de diff; nécessite que supprimer course_group soit autorisé). [web:41]
+      await conn.query("DELETE FROM course_group WHERE course_id = ?", [item.id]);
+
       if (Array.isArray(item.course?.groups)) {
         for (const grp of item.course.groups) {
           const groupId = await upsertGroup(conn, grp);
           await conn.query(
-            "REPLACE INTO course_group(course_id, group_id) VALUES (?,?)",
+            "INSERT INTO course_group(course_id, group_id) VALUES (?,?)",
             [item.id, groupId]
           );
         }
@@ -193,7 +222,7 @@ async function saveWeekToDb(dept, week, year, data) {
 
 // --- Main ---
 async function main() {
-  const weeksToFetch = getFutureWeeks(15); // 15 semaines à partir de maintenant
+  const weeksToFetch = getFutureWeeks(15);
 
   console.log("🚀 Starting FUTURE(15) DB sync...");
   console.log(
@@ -226,7 +255,6 @@ async function main() {
     `✨ Future(15) sync done! ${totalSaved} weeks saved, ${totalSkipped} skipped`
   );
 }
-
 
 main().catch((e) => {
   console.error(e);
