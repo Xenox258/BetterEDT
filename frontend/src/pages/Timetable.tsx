@@ -380,19 +380,26 @@ export default function Timetable() {
       return [] as string[];
     }
 
-    const matchedGroups = Array.from(
-      new Set(
-        allGroups
-          .map((group) => normalizeGroupCode(group))
-          .filter((group) => group !== "CE" && groupsMatchFilter(group, trimmedFilter)),
-      ),
-    );
-
-    if (matchedGroups.length <= 1) {
+    const normalizedFilter = normalizeGroupCode(trimmedFilter);
+    if (!/^\d+$/.test(normalizedFilter)) {
       return [] as string[];
     }
 
-    return sortGroups(matchedGroups);
+    const directSubgroupPattern = new RegExp(`^${normalizedFilter}[A-Z]+$`);
+
+    const matchedSubgroups = Array.from(
+      new Set(
+        allGroups
+          .map((group) => normalizeGroupCode(group))
+          .filter((group) => group !== "CE" && directSubgroupPattern.test(group)),
+      ),
+    );
+
+    if (matchedSubgroups.length <= 1) {
+      return [] as string[];
+    }
+
+    return sortGroups(matchedSubgroups);
   }, [allGroups, groupFilter]);
 
   const buildCoursesWithColumns = React.useCallback((dayCourses: CoursAPI[]): CourseWithPosition[] => {
