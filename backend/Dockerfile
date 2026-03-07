@@ -1,5 +1,7 @@
-FROM node:20-alpine
+FROM node:20.20.0-alpine3.22
 RUN apk update && apk upgrade zlib
+RUN npm install -g npm@11.6.4
+
 WORKDIR /app
 
 # Copier les fichiers de dépendances

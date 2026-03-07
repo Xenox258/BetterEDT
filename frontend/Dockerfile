@@ -1,5 +1,6 @@
 # Stage 1: Build de l'application
 FROM node:20-alpine AS builder
+RUN apk update && apk upgrade zlib
 
 WORKDIR /app
 
