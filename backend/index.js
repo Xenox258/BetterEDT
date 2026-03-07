@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,6 +8,8 @@ import { pool as db } from "./db.js";
 
 // Init express + chemins
 const app = express();
+app.disable("x-powered-by");
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
