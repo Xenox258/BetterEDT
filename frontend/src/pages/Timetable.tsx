@@ -374,6 +374,74 @@ export default function Timetable() {
     return map;
   }, [allGroups]);
 
+  const fixedGroupColumns = React.useMemo(() => {
+    const trimmedFilter = groupFilter.trim();
+    if (!trimmedFilter || trimmedFilter === "ALL") {
+      return [] as string[];
+    }
+
+    const matchedGroups = Array.from(
+      new Set(
+        allGroups
+          .map((group) => normalizeGroupCode(group))
+          .filter((group) => group !== "CE" && groupsMatchFilter(group, trimmedFilter)),
+      ),
+    );
+
+    if (matchedGroups.length <= 1) {
+      return [] as string[];
+    }
+
+    return sortGroups(matchedGroups);
+  }, [allGroups, groupFilter]);
+
+  const buildCoursesWithColumns = React.useCallback((dayCourses: CoursAPI[]): CourseWithPosition[] => {
+    const coursesWithColumns = dayCourses.map((course) => ({
+      ...course,
+      column: 0,
+      totalColumns: 1,
+      sortedGroups: sortGroups([...course.groups]),
+    }));
+
+    if (fixedGroupColumns.length > 1) {
+      const groupToColumn = new Map(fixedGroupColumns.map((group, index) => [group, index]));
+      const totalColumns = fixedGroupColumns.length;
+
+      return coursesWithColumns.map((course) => {
+        const matchedGroup = course.sortedGroups
+          .map((group) => normalizeGroupCode(group))
+          .find((group) => groupToColumn.has(group));
+
+        return {
+          ...course,
+          column: matchedGroup ? groupToColumn.get(matchedGroup)! : 0,
+          totalColumns,
+        };
+      });
+    }
+
+    for (let i = 0; i < coursesWithColumns.length; i++) {
+      const current = coursesWithColumns[i];
+      const overlapping = coursesWithColumns.filter((c, idx) => idx !== i && coursesOverlap(current, c));
+      if (overlapping.length > 0) {
+        const allOverlapping = [current, ...overlapping].sort((a, b) => {
+          const groupA = a.sortedGroups[0] || '';
+          const groupB = b.sortedGroups[0] || '';
+          return groupA.localeCompare(groupB);
+        });
+        allOverlapping.forEach((course, index) => {
+          course.column = index;
+        });
+        const totalCols = allOverlapping.length;
+        allOverlapping.forEach((course) => {
+          course.totalColumns = totalCols;
+        });
+      }
+    }
+
+    return coursesWithColumns;
+  }, [fixedGroupColumns]);
+
   const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const dayStartHour = 8;
   const dayEndHour = 19;
@@ -1003,29 +1071,7 @@ export default function Timetable() {
                 {/* Course cards for selected day */}
                 {(() => {
                   const dayCourses = [...(coursesByDay[startDayIndex + 1] || [])].sort((a, b) => a.start_time - b.start_time);
-
-                  // Calculer les colonnes pour les cours qui se chevauchent (même logique que la vue 3j)
-                  const coursesWithColumns = dayCourses.map((course) => ({ 
-                    ...course, 
-                    column: 0, 
-                    totalColumns: 1, 
-                    sortedGroups: sortGroups([...course.groups]) 
-                  }));
-                  
-                  for (let i = 0; i < coursesWithColumns.length; i++) {
-                    const current = coursesWithColumns[i];
-                    const overlapping = coursesWithColumns.filter((c, idx) => idx !== i && coursesOverlap(current, c));
-                    if (overlapping.length > 0) {
-                      const allOverlapping = [current, ...overlapping].sort((a, b) => {
-                        const groupA = a.sortedGroups[0] || '';
-                        const groupB = b.sortedGroups[0] || '';
-                        return groupA.localeCompare(groupB);
-                      });
-                      allOverlapping.forEach((course, index) => { course.column = index; });
-                      const totalCols = allOverlapping.length;
-                      allOverlapping.forEach(c => { c.totalColumns = totalCols; });
-                    }
-                  }
+                  const coursesWithColumns = buildCoursesWithColumns(dayCourses);
 
                   return coursesWithColumns.map((c) => {
                     const start = c.start_time;
@@ -1176,22 +1222,7 @@ export default function Timetable() {
                     {/* Course cards */}
                     {(() => {
                       const dayCourses = [...(coursesByDay[dayIndex + 1] || [])].sort((a, b) => a.start_time - b.start_time);
-
-                      const coursesWithColumns = dayCourses.map((course) => ({ ...course, column: 0, totalColumns: 1, sortedGroups: sortGroups([...course.groups]) }));
-                      for (let i = 0; i < coursesWithColumns.length; i++) {
-                        const current = coursesWithColumns[i];
-                        const overlapping = coursesWithColumns.filter((c, idx) => idx !== i && coursesOverlap(current, c));
-                        if (overlapping.length > 0) {
-                          const allOverlapping = [current, ...overlapping].sort((a, b) => {
-                            const groupA = a.sortedGroups[0] || '';
-                            const groupB = b.sortedGroups[0] || '';
-                            return groupA.localeCompare(groupB);
-                          });
-                          allOverlapping.forEach((course, index) => { course.column = index; });
-                          const totalCols = allOverlapping.length;
-                          allOverlapping.forEach(c => { c.totalColumns = totalCols; });
-                        }
-                      }
+                      const coursesWithColumns = buildCoursesWithColumns(dayCourses);
 
                       return coursesWithColumns.map((c) => {
                         const start = c.start_time;
