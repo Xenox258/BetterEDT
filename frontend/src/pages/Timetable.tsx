@@ -1116,7 +1116,11 @@ export default function Timetable() {
                     const courseType = c.course_type && c.course_type !== 'DS' ? c.course_type : null;
                     
                     // Calcul de la position et largeur en fonction des colonnes
-                    const spanAllColumns = c.totalColumns > 1 && shouldSpanAllFixedColumns(c);
+                    const normalizedGroupFilter = normalizeGroupCode(groupFilter.trim());
+                    const hasParentGroupAssignment = /^\d+$/.test(normalizedGroupFilter)
+                      && c.groups.some((group) => normalizeGroupCode(group) === normalizedGroupFilter);
+                    const spanAllColumns = c.totalColumns > 1
+                      && (shouldSpanAllFixedColumns(c) || hasParentGroupAssignment);
 
                     let leftStyle, widthStyle;
                     if (spanAllColumns) {
@@ -1268,7 +1272,11 @@ export default function Timetable() {
                         const height = visualDuration * pxPerMinute;
 
                         const displayName = c.module_abbrev || c.module_name || "Cours";
-                        const spanAllColumns = c.totalColumns > 1 && shouldSpanAllFixedColumns(c);
+                        const normalizedGroupFilter = normalizeGroupCode(groupFilter.trim());
+                        const hasParentGroupAssignment = /^\d+$/.test(normalizedGroupFilter)
+                          && c.groups.some((group) => normalizeGroupCode(group) === normalizedGroupFilter);
+                        const spanAllColumns = c.totalColumns > 1
+                          && (shouldSpanAllFixedColumns(c) || hasParentGroupAssignment);
                         const isCompactMode = groupFilter === "ALL" && c.totalColumns > 1 && !spanAllColumns;
                         const courseType = c.course_type && c.course_type !== 'DS' ? c.course_type : null;
 
