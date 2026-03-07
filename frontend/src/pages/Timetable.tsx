@@ -464,6 +464,14 @@ export default function Timetable() {
     return coursesWithColumns;
   }, [fixedGroupColumns]);
 
+  const shouldSpanAllFixedColumns = React.useCallback((course: CoursAPI): boolean => {
+    const normalizedType = (course.course_type || "").trim().toUpperCase();
+    if (course.is_graded || normalizedType === "DS") {
+      return true;
+    }
+    return normalizedType === "TD" || normalizedType === "CM";
+  }, []);
+
   const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const dayStartHour = 8;
   const dayEndHour = 19;
@@ -1108,8 +1116,13 @@ export default function Timetable() {
                     const courseType = c.course_type && c.course_type !== 'DS' ? c.course_type : null;
                     
                     // Calcul de la position et largeur en fonction des colonnes
+                    const spanAllColumns = c.totalColumns > 1 && shouldSpanAllFixedColumns(c);
+
                     let leftStyle, widthStyle;
-                    if (c.totalColumns > 1) {
+                    if (spanAllColumns) {
+                      leftStyle = '4px';
+                      widthStyle = 'calc(100% - 8px)';
+                    } else if (c.totalColumns > 1) {
                       const gap = 2;
                       const columnWidth = 100 / c.totalColumns;
                       const leftPercent = (c.column * columnWidth);
@@ -1255,11 +1268,15 @@ export default function Timetable() {
                         const height = visualDuration * pxPerMinute;
 
                         const displayName = c.module_abbrev || c.module_name || "Cours";
-                        const isCompactMode = groupFilter === "ALL" && c.totalColumns > 1;
+                        const spanAllColumns = c.totalColumns > 1 && shouldSpanAllFixedColumns(c);
+                        const isCompactMode = groupFilter === "ALL" && c.totalColumns > 1 && !spanAllColumns;
                         const courseType = c.course_type && c.course_type !== 'DS' ? c.course_type : null;
 
                         let leftStyle, widthStyle;
-                        if (c.totalColumns > 1) {
+                        if (spanAllColumns) {
+                          leftStyle = isMobile ? '4px' : '8px';
+                          widthStyle = isMobile ? 'calc(100% - 8px)' : 'calc(100% - 16px)';
+                        } else if (c.totalColumns > 1) {
                           const gap = isMobile ? 2 : 4;
                           const columnWidth = 100 / c.totalColumns;
                           const leftPercent = (c.column * columnWidth);
