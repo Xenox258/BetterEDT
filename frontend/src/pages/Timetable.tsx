@@ -387,7 +387,18 @@ export default function Timetable() {
 
     const directSubgroupPattern = new RegExp(`^${normalizedFilter}[A-Z]+$`);
 
-    const matchedSubgroups = Array.from(
+    const configuredGroups = Object.values(getGroupsForPromo(dept, year))
+      .flat()
+      .map((group) => normalizeGroupCode(group));
+
+    const matchedConfiguredSubgroups = Array.from(
+      new Set(
+        configuredGroups
+          .filter((group) => group !== "CE" && directSubgroupPattern.test(group)),
+      ),
+    );
+
+    const matchedDataSubgroups = Array.from(
       new Set(
         allGroups
           .map((group) => normalizeGroupCode(group))
@@ -395,12 +406,16 @@ export default function Timetable() {
       ),
     );
 
+    const matchedSubgroups = matchedConfiguredSubgroups.length > 0
+      ? matchedConfiguredSubgroups
+      : matchedDataSubgroups;
+
     if (matchedSubgroups.length <= 1) {
       return [] as string[];
     }
 
     return sortGroups(matchedSubgroups);
-  }, [allGroups, groupFilter]);
+  }, [allGroups, dept, groupFilter, year]);
 
   const buildCoursesWithColumns = React.useCallback((dayCourses: CoursAPI[]): CourseWithPosition[] => {
     const coursesWithColumns = dayCourses.map((course) => ({
