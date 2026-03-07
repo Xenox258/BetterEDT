@@ -134,6 +134,21 @@ const getInitialWeekInfo = () => {
 
 const isCoursAPIRaw = (value: unknown): value is CoursAPIRaw => typeof value === 'object' && value !== null;
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getSafeEmailDisplay = (email?: string | null): string | null => {
+  if (!email) {
+    return null;
+  }
+
+  const normalizedEmail = email.trim();
+  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    return null;
+  }
+
+  return normalizedEmail;
+};
+
 export default function Timetable() {
   const isMobile = useIsMobile();
   const dayOptions = React.useMemo(() => getDayOptionsForDevice(isMobile), [isMobile]);
@@ -431,6 +446,9 @@ export default function Timetable() {
     const columnDate = getDateForColumn(dayIndex);
     return columnDate.toDateString() === now.toDateString();
   }, [getDateForColumn, isCurrentWeek, now]);
+
+  const selectedTutorInfo = selectedCourse ? getTutorInfo(selectedCourse.tutor_username) : null;
+  const selectedTutorEmail = getSafeEmailDisplay(selectedTutorInfo?.email);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -1341,14 +1359,11 @@ export default function Timetable() {
                       {getTutorFullName(selectedCourse.tutor_username)}
                       <span className="text-muted-foreground font-normal ml-1.5">({selectedCourse.tutor_username})</span>
                     </div>
-                    {getTutorInfo(selectedCourse.tutor_username)?.email && (
-                      <a
-                        href={`mailto:${getTutorInfo(selectedCourse.tutor_username)?.email}`}
-                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-1.5"
-                      >
+                    {selectedTutorEmail && (
+                      <div className="inline-flex items-center gap-1.5 text-sm text-primary mt-1.5">
                         <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="truncate">{getTutorInfo(selectedCourse.tutor_username)?.email}</span>
-                      </a>
+                        <span className="truncate">{selectedTutorEmail}</span>
+                      </div>
                     )}
                   </div>
                 </div>
