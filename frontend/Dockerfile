@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serveur nginx pour servir l'application
-FROM nginx:alpine
+FROM nginx:1.29.5-alpine3.23-slim
 
 # Copier les fichiers buildés
 COPY --from=builder /app/dist /usr/share/nginx/html

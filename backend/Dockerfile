@@ -1,5 +1,5 @@
 FROM node:20-alpine
-
+RUN apk update && apk upgrade zlib
 WORKDIR /app
 
 # Copier les fichiers de dépendances
