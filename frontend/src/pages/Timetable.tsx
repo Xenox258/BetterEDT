@@ -417,6 +417,14 @@ export default function Timetable() {
     return sortGroups(matchedSubgroups);
   }, [allGroups, dept, groupFilter, year]);
 
+  const shouldSpanAllFixedColumns = React.useCallback((course: CoursAPI): boolean => {
+    const normalizedType = (course.course_type || "").trim().toUpperCase();
+    if (course.is_graded || normalizedType === "DS") {
+      return true;
+    }
+    return normalizedType === "TD" || normalizedType === "CM";
+  }, []);
+
   const buildCoursesWithColumns = React.useCallback((dayCourses: CoursAPI[]): CourseWithPosition[] => {
     const coursesWithColumns = dayCourses.map((course) => ({
       ...course,
@@ -429,7 +437,44 @@ export default function Timetable() {
       const groupToColumn = new Map(fixedGroupColumns.map((group, index) => [group, index]));
       const totalColumns = fixedGroupColumns.length;
 
-      return coursesWithColumns.map((course) => {
+      const spanningCoursesByKey = new Map<string, CourseWithPosition>();
+      const subgroupCourses: CourseWithPosition[] = [];
+
+      coursesWithColumns.forEach((course) => {
+        if (shouldSpanAllFixedColumns(course)) {
+          const mergeKey = [
+            course.day,
+            course.start_time,
+            course.end_time,
+            course.module_name,
+            course.module_abbrev,
+            course.course_type,
+            course.is_graded ? 1 : 0,
+            course.tutor_username,
+            course.room_name,
+          ].join("|");
+
+          const existing = spanningCoursesByKey.get(mergeKey);
+          if (!existing) {
+            spanningCoursesByKey.set(mergeKey, {
+              ...course,
+              column: 0,
+              totalColumns,
+            });
+            return;
+          }
+
+          const mergedGroups = sortGroups(Array.from(new Set([...existing.groups, ...course.groups])));
+          existing.groups = mergedGroups;
+          existing.sortedGroups = mergedGroups;
+          existing.totalColumns = totalColumns;
+          return;
+        }
+
+        subgroupCourses.push(course);
+      });
+
+      const positionedSubgroupCourses = subgroupCourses.map((course) => {
         const matchedGroup = course.sortedGroups
           .map((group) => normalizeGroupCode(group))
           .find((group) => groupToColumn.has(group));
@@ -440,6 +485,10 @@ export default function Timetable() {
           totalColumns,
         };
       });
+
+      return [...spanningCoursesByKey.values(), ...positionedSubgroupCourses].sort(
+        (a, b) => a.start_time - b.start_time || a.column - b.column,
+      );
     }
 
     for (let i = 0; i < coursesWithColumns.length; i++) {
@@ -462,15 +511,7 @@ export default function Timetable() {
     }
 
     return coursesWithColumns;
-  }, [fixedGroupColumns]);
-
-  const shouldSpanAllFixedColumns = React.useCallback((course: CoursAPI): boolean => {
-    const normalizedType = (course.course_type || "").trim().toUpperCase();
-    if (course.is_graded || normalizedType === "DS") {
-      return true;
-    }
-    return normalizedType === "TD" || normalizedType === "CM";
-  }, []);
+  }, [fixedGroupColumns, shouldSpanAllFixedColumns]);
 
   const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
   const dayStartHour = 8;
